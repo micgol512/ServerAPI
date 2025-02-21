@@ -1,12 +1,50 @@
-import { createServer } from 'http';
+import http from "http";
+import path from "path";
 
-const PORT = 3000;
-const server = createServer(async (req, res) => {
-  res.end(JSON.stringify({ status: 'ok'}))
+import { promises as fs } from "fs";
+import url, { fileURLToPath } from "url";
+
+console.clear();
+console.log(` --> Uruchomiono serwer <--
+ |
+ |> ${process.env.HOSTNAME?.replace(":", "://")}:${process.env.PORT}
+ |
+`);
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+// console.log(path.dirname(__dirname));
+
+const PORT = process.env.PORT ?? "3000";
+
+const server = http.createServer(async (req, res) => {
+  const reqUrl = req.url;
+  const reqMethod = req.method;
+
+  // console.log("WINDOWWWWW ", window.location.hash); // -> #home
+  const myURL = new URL(`http://localhost:3000${req.url}`);
+  // console.log(myURL);
+  // console.log(myURL.searchParams.get("id"));
+  console.log(req.url);
+  console.log(req.method);
+  res.statusCode = 200;
+  let filePath = path.join(__dirname, "../", "frontend", "index.html");
+  if (reqUrl === "/static") {
+    filePath = path.join(__dirname, "../", "frontend", "index.html");
+    const data = await fs.readFile(filePath);
+    res.end(data);
+  } else if (reqUrl === "/users") {
+    res.end("<h1>Pobieranie Users</h1>");
+  } else res.end("<h1>Błąd</h1>");
+  // else if (req.url?.includes("about"))
+  //   filePath = path.join(__dirname, "about.html");
+  // else if (req.url?.includes("contact"))
+  //   filePath = path.join(__dirname, "contact.html");
+  // else filePath = path.join(__dirname, "not_found.html");
 
   // 1st option serve static files from frontend folder while hitting /static/ endpoint
   // if (// startsWith(/static/)) {}
-  // then server file 
+  // then server file
   // 2nd option allow CORS
 
   // 1. Obsługa endpointów
@@ -14,5 +52,5 @@ const server = createServer(async (req, res) => {
 });
 
 server.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
+  console.log(`Server running succesfull.`);
 });
