@@ -1,8 +1,9 @@
-import http from "http";
+import http, { IncomingMessage, ServerResponse } from "http";
 import path from "path";
 
 import { promises as fs } from "fs";
 import url, { fileURLToPath } from "url";
+import { queueRequest } from "./middlewares.js";
 
 console.clear();
 console.log(` --> Uruchomiono serwer <--
@@ -17,7 +18,10 @@ const __dirname = path.dirname(__filename);
 
 const PORT = process.env.PORT ?? "3000";
 
-const server = http.createServer(async (req, res) => {
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+async function handleRequest(req: IncomingMessage, res: ServerResponse) {
   const reqUrl = req.url;
   const reqMethod = req.method;
 
@@ -36,6 +40,20 @@ const server = http.createServer(async (req, res) => {
   } else if (reqUrl === "/users") {
     res.end("<h1>Pobieranie Users</h1>");
   } else res.end("<h1>Błąd</h1>");
+
+  // if (req.url === "/test" && req.method === "GET") {
+  //   await delay(2000); // Symulacja długiego procesu
+  //   res.writeHead(200, { "Content-Type": "application/json" });
+  //   res.end(JSON.stringify({ message: "Żądanie obsłużone" }));
+  // } else {
+  //   res.writeHead(404, { "Content-Type": "application/json" });
+  //   res.end(JSON.stringify({ error: "Nie znaleziono endpointu" }));
+  // }
+}
+
+const server = http.createServer(async (req, res) => {
+  queueRequest(req, res, handleRequest);
+
   // else if (req.url?.includes("about"))
   //   filePath = path.join(__dirname, "about.html");
   // else if (req.url?.includes("contact"))

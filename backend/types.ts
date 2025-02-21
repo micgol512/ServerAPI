@@ -1,3 +1,5 @@
+import { IncomingMessage, ServerResponse } from "http";
+
 export interface User {
   id: string; //immutable
   username: string;
@@ -63,3 +65,8 @@ export class DB implements DataBase {
     this.cars = new BaseImpl(cars);
   }
 }
+
+export type RequestHandler = (
+  req: IncomingMessage,
+  res: ServerResponse
+) => Promise<void>;
