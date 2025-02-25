@@ -20,6 +20,7 @@ export interface Base<T> {
   data: T[];
   get(): T[];
   get(id: string): T;
+
   set<K extends keyof T>(id: string, updates: Partial<Pick<T, K>>): void;
   delete(id: string): void;
 }
@@ -34,9 +35,11 @@ export class BaseImpl<T extends { id: string }> implements Base<T> {
     if (!id) {
       return this.data;
     } else {
-      return (
-        this.data.find((item) => item.id === id) || { message: "not found" }
-      );
+      const item = this.data.find((item) => item.id === id);
+      if (!item) {
+        throw new Error("Not found");
+      }
+      return item;
     }
   }
   set<K extends keyof T>(id: string, updates: Partial<Pick<T, K>>): void {
@@ -57,6 +60,7 @@ export interface DataBase {
   users: BaseImpl<User>;
   cars: BaseImpl<Car>;
 }
+
 export class DB implements DataBase {
   users: BaseImpl<User>;
   cars: BaseImpl<Car>;

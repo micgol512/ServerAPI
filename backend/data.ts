@@ -2,32 +2,43 @@
 // //https://www.npmjs.com/package/jsonwebtoken
 
 import { promises as fs } from "fs";
-import { Car, DB, User } from "./types.js";
-let path = "./db/users.json";
-async function loadFile(filePath: string) {
+import { BaseImpl, Car, DB, User } from "./types.js";
+
+let USERS_PATH = "./db/users.json";
+let CARS_PATH = "./db/cars.json";
+
+export async function loadFile(filePath: string) {
   const rawData = await fs.readFile(filePath, "utf-8");
   const data = JSON.parse(rawData);
   return data;
 }
-async function loadUsers() {
-  const rawData = await fs.readFile("./db/users.json", "utf-8");
-  const users = JSON.parse(rawData);
-  return users;
+async function saveFile(filePath: string, data: any) {
+  await fs.writeFile(filePath, JSON.stringify(data));
 }
-async function loadCars() {
-  const rawData = await fs.readFile("./db/cars.json", "utf-8");
-  const cars = JSON.parse(rawData);
-  return cars;
+export async function loadUsers(): Promise<User[]> {
+  return loadFile(USERS_PATH);
 }
-async function saveDB(data: DB): Promise<void> {
+export async function loadCars(): Promise<Car[]> {
+  return loadFile(CARS_PATH);
+}
+export async function saveUsers(data: User[]): Promise<void> {
+  await saveFile(USERS_PATH, data);
+}
+export async function saveCars(data: Car[]): Promise<void> {
+  await saveFile(CARS_PATH, data);
+}
+
+export async function saveDB(data: DB): Promise<void> {
   await Promise.all([
-    fs.writeFile("./db/users.json", JSON.stringify(data.users.get())),
-    fs.writeFile("./db/cars.json", JSON.stringify(data.cars.get())),
+    fs.writeFile(USERS_PATH, JSON.stringify(data.users.get())),
+    fs.writeFile(CARS_PATH, JSON.stringify(data.cars.get())),
   ]);
 }
 const mojaData = new DB(await loadUsers(), await loadCars());
-console.log(mojaData.users.get());
-
+const users = new BaseImpl(await loadUsers());
+const cars = new BaseImpl(await loadCars());
+console.log("Users:", users.get());
+console.log("Cars:", cars.get());
 // async function main(update: Partial<User> | Partial<Car>) {
 //   const myDB = new DB(
 //     await loadFile("./db/users.json"),

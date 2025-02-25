@@ -4,6 +4,7 @@ import path from "path";
 import { promises as fs } from "fs";
 import url, { fileURLToPath } from "url";
 import { queueRequest } from "./middlewares.js";
+import r from "./routes.js";
 
 console.clear();
 console.log(` --> Uruchomiono serwer <--
@@ -12,8 +13,8 @@ console.log(` --> Uruchomiono serwer <--
  |
 `);
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+export const __filename = fileURLToPath(import.meta.url);
+export const __dirname = path.dirname(__filename);
 // console.log(path.dirname(__dirname));
 
 const PORT = process.env.PORT ?? "3000";
@@ -22,6 +23,7 @@ function delay(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 async function handleRequest(req: IncomingMessage, res: ServerResponse) {
+  await delay(1000);
   const reqUrl = req.url;
   const reqMethod = req.method;
 
@@ -32,14 +34,58 @@ async function handleRequest(req: IncomingMessage, res: ServerResponse) {
   console.log(req.url);
   console.log(req.method);
   res.statusCode = 200;
+  // res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
   let filePath = path.join(__dirname, "../", "frontend", "index.html");
-  if (reqUrl === "/static") {
-    filePath = path.join(__dirname, "../", "frontend", "index.html");
+  if (reqUrl === undefined) {
+    r.notFoundHandler(req, res);
+  } else if (reqUrl === "/login") {
+    console.log("POST LOGIN");
+
+    r.loginHandler(req, res);
+  } else if (/^\/(static\/?)?$/.test(reqUrl)) {
+    r.homeHandler(req, res);
+  } else if (reqUrl === "/style.css") {
+    res.writeHead(200, { "Content-Type": "text/css" });
+    const filePath = path.join(__dirname, "../", "frontend", "style.css");
     const data = await fs.readFile(filePath);
     res.end(data);
-  } else if (reqUrl === "/users") {
-    res.end("<h1>Pobieranie Users</h1>");
-  } else res.end("<h1>Błąd</h1>");
+  } else if (reqUrl === "/main.js") {
+    res.writeHead(200, { "Content-Type": "text/javascript" });
+    const filePath = path.join(__dirname, "../", "frontend", "main.js");
+    const data = await fs.readFile(filePath);
+    res.end(data);
+  } else if (/^\/users\/?$/.test(reqUrl)) {
+    r.usersHandler(req, res);
+  } else if (/^\/cars\/?$/.test(reqUrl)) {
+    r.carsHandler(req, res);
+  } else if (/^\/hack$/.test(reqUrl)) {
+    r.hackHandler(req, res);
+  } else {
+    r.notFoundHandler(req, res);
+  }
+
+  // switch (reqUrl) {
+  //   case "/static":
+  //     // filePath = path.join(__dirname, "../", "frontend", "index.html");
+  //     // const data = await fs.readFile(filePath);
+  //     // res.end(data);
+  //     r.homeHandler(req, res);
+  //     break;
+  //   case "/users":
+  //     res.end("<h1>Pobieranie Users</h1>");
+  //     break;
+  //   case "/cars":
+  //     res.end("<h1>Pobieranie Cars</h1>");
+  //   default:
+  //     res.writeHead(404, { "Content-Type": "application/json" });
+  //     res.end(JSON.stringify({ error: "Nie znaleziono endpointu" }));
+  //     break;
+  // }
+
+  // if (reqUrl === "/static") {
+  // } else if (reqUrl === "/users") {
+  //   res.end("<h1>Pobieranie Users</h1>");
+  // } else res.end("<h1>Błąd</h1>");
 
   // if (req.url === "/test" && req.method === "GET") {
   //   await delay(2000); // Symulacja długiego procesu
