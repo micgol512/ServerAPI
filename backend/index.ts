@@ -18,12 +18,13 @@ export const __dirname = path.dirname(__filename);
 // console.log(path.dirname(__dirname));
 
 const PORT = process.env.PORT ?? "3000";
+export const clients: ServerResponse[] = [];
 
 function delay(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 async function handleRequest(req: IncomingMessage, res: ServerResponse) {
-  await delay(1000);
+  // await delay(1000);
   const reqUrl = req.url;
   const reqMethod = req.method;
 
@@ -56,10 +57,12 @@ async function handleRequest(req: IncomingMessage, res: ServerResponse) {
     res.end(data);
   } else if (/^\/users\/?$/.test(reqUrl)) {
     r.usersHandler(req, res);
-  } else if (/^\/cars\/?$/.test(reqUrl)) {
+  } else if (/^\/cars\/?$/.test(reqUrl) || /cars\/\d+\/buy\/?$/.test(reqUrl)) {
     r.carsHandler(req, res);
   } else if (/^\/hack$/.test(reqUrl)) {
     r.hackHandler(req, res);
+  } else if (/^\/sse$/.test(reqUrl)) {
+    r.sseHandler(req, res);
   } else {
     r.notFoundHandler(req, res);
   }

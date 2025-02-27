@@ -18,6 +18,12 @@ async function saveFile(filePath: string, data: any) {
 export async function loadUsers(): Promise<User[]> {
   return loadFile(USERS_PATH);
 }
+export async function loadFullUsers(): Promise<BaseImpl<User>> {
+  return new BaseImpl(await loadFile(USERS_PATH));
+}
+export async function loadFullCars(): Promise<BaseImpl<Car>> {
+  return new BaseImpl(await loadCars());
+}
 export async function loadCars(): Promise<Car[]> {
   return loadFile(CARS_PATH);
 }
@@ -39,17 +45,3 @@ const users = new BaseImpl(await loadUsers());
 const cars = new BaseImpl(await loadCars());
 console.log("Users:", users.get());
 console.log("Cars:", cars.get());
-// async function main(update: Partial<User> | Partial<Car>) {
-//   const myDB = new DB(
-//     await loadFile("./db/users.json"),
-//     await loadFile("./db/cars.json")
-//   );
-//   // tu logika zapisu, odczytu i modyfikacji bazy w zależności od przekazanej ścieżki
-//   console.log("Cars:", myDB.cars.get());
-//   myDB.cars.set("1", update);
-//   console.log("Car id 1:", myDB.cars.get("1"));
-//   await saveDB(myDB);
-// }
-
-// await main({ model: "Honda" });
-// await main({ model: "Zafira" });

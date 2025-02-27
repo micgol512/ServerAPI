@@ -33,7 +33,6 @@ async function processQueue() {
     res.writeHead(500, { "Content-Type": "application/json" });
     res.end(JSON.stringify({ error: "Internal Server Error" }));
   }
-
   processing = false;
   processQueue(); // Przetwarzamy kolejne żądanie
 }

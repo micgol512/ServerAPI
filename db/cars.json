@@ -1,1 +1,4 @@
-[{"id":"1","model":"Zafira","price":8000,"ownerId":"admin001"},{"id":"2","model":"Mazda","price":12000,"ownerId":null}]
+[
+  { "id": "1", "model": "Zafira", "price": 8000, "ownerId": "admin001" },
+  { "id": "2", "model": "Mazda", "price": 12000, "ownerId": null }
+]
