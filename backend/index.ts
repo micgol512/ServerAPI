@@ -5,6 +5,7 @@ import { promises as fs } from "fs";
 import url, { fileURLToPath } from "url";
 import { queueRequest } from "./middlewares.js";
 import r from "./routes.js";
+import { decodeToken, parseCookies } from "./auth.js";
 
 console.clear();
 console.log(` --> Uruchomiono serwer <--
@@ -59,10 +60,13 @@ async function handleRequest(req: IncomingMessage, res: ServerResponse) {
     r.usersHandler(req, res);
   } else if (/^\/cars\/?$/.test(reqUrl) || /cars\/\d+\/buy\/?$/.test(reqUrl)) {
     r.carsHandler(req, res);
-  } else if (/^\/hack$/.test(reqUrl)) {
+  } else if (/^\/hack\/\d+$/.test(reqUrl)) {
     r.hackHandler(req, res);
   } else if (/^\/sse$/.test(reqUrl)) {
     r.sseHandler(req, res);
+  } else if (/^\/spr$/.test(reqUrl)) {
+    console.log(decodeToken(parseCookies(req)["token"]));
+    res.end("Sprawdzam token");
   } else {
     r.notFoundHandler(req, res);
   }

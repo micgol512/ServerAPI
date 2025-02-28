@@ -23,6 +23,7 @@ export interface Base<T> {
 
   set<K extends keyof T>(id: string, updates: Partial<Pick<T, K>>): void;
   delete(id: string): void;
+  add(item: T): void;
 }
 export class BaseImpl<T extends { id: string }> implements Base<T> {
   data: T[];
@@ -56,6 +57,9 @@ export class BaseImpl<T extends { id: string }> implements Base<T> {
   delete(id: string): void {
     this.data = this.data.filter((item) => item.id !== id);
   }
+  add(item: T): void {
+    this.data.push(item);
+  }
 }
 export interface DataBase {
   users: BaseImpl<User>;
@@ -75,3 +79,8 @@ export type RequestHandler = (
   req: IncomingMessage,
   res: ServerResponse
 ) => Promise<void>;
+
+export interface TokenPayload {
+  userId: string;
+  exp?: number; // (opcjonalnie) czas wygaśnięcia
+}
