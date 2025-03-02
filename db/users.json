@@ -1,1 +1,44 @@
-[{"id":"admin001","username":"admin","password":"admin123","role":"admin","balance":5979},{"id":"user002","username":"user","password":"user123","role":"user","balance":7980}]
+[
+  {
+    "id": "admin001",
+    "username": "admin",
+    "password": "admin123",
+    "role": "admin",
+    "balance": 5979
+  },
+  {
+    "id": "user002",
+    "username": "user",
+    "password": "user123",
+    "role": "user",
+    "balance": 7980
+  },
+  {
+    "id": "noob003",
+    "username": "noob",
+    "password": "noob123",
+    "role": "user",
+    "balance": 9956
+  },
+  {
+    "id": "3",
+    "username": "migol",
+    "password": "migol123",
+    "role": "user",
+    "balance": 0
+  },
+  {
+    "id": "migol004",
+    "username": "migol",
+    "password": "migol123",
+    "role": "user",
+    "balance": 0
+  },
+  {
+    "id": "migol005",
+    "username": "migol",
+    "password": "migol123",
+    "role": "user",
+    "balance": 0
+  }
+]

@@ -280,6 +280,7 @@ function route() {
 
   if (hash === "#logout") {
     // "Wylogowanie" – resetujemy currentUser; w prawdziwej aplikacji warto by było mieć endpoint logout
+    fetch("http://localhost:3000/logout");
     currentUser = null;
     renderNav();
     showMessage("Wylogowano");

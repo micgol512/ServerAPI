@@ -45,6 +45,11 @@ export function setAuthCookie(
   token: string,
   maxAge?: number
 ) {
+  // res.writeHead(200, {
+  //   "Content-Type": "application/json",
+  //   "set-cookie": `token=${token}; ${maxAge ? `max-age=${maxAge}` : ""};`,
+  // });
+
   res.setHeader(
     "set-cookie",
     `token=${token}; ${maxAge ? `max-age=${maxAge}` : ""};`

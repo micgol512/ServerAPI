@@ -41,19 +41,17 @@ async function handleRequest(req: IncomingMessage, res: ServerResponse) {
   if (reqUrl === undefined) {
     r.notFoundHandler(req, res);
   } else if (reqUrl === "/login") {
-    console.log("POST LOGIN");
-
     r.loginHandler(req, res);
   } else if (/^\/(static\/?)?$/.test(reqUrl)) {
     r.homeHandler(req, res);
   } else if (reqUrl === "/style.css") {
     res.writeHead(200, { "Content-Type": "text/css" });
-    const filePath = path.join(__dirname, "../", "frontend", "style.css");
+    filePath = path.join(__dirname, "../", "frontend", "style.css");
     const data = await fs.readFile(filePath);
     res.end(data);
   } else if (reqUrl === "/main.js") {
     res.writeHead(200, { "Content-Type": "text/javascript" });
-    const filePath = path.join(__dirname, "../", "frontend", "main.js");
+    filePath = path.join(__dirname, "../", "frontend", "main.js");
     const data = await fs.readFile(filePath);
     res.end(data);
   } else if (/^\/users\/?$/.test(reqUrl)) {
@@ -62,8 +60,12 @@ async function handleRequest(req: IncomingMessage, res: ServerResponse) {
     r.carsHandler(req, res);
   } else if (/^\/hack\/\d+$/.test(reqUrl)) {
     r.hackHandler(req, res);
+  } else if (/^\/logout$/.test(reqUrl)) {
+    r.logoutHandler(req, res);
   } else if (/^\/sse$/.test(reqUrl)) {
     r.sseHandler(req, res);
+  } else if (/^\/register\/?$/.test(reqUrl)) {
+    r.registerHandler(req, res);
   } else if (/^\/spr$/.test(reqUrl)) {
     console.log(decodeToken(parseCookies(req)["token"]));
     res.end("Sprawdzam token");

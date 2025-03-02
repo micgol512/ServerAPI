@@ -12,7 +12,7 @@ import {
 import path from "path";
 import { promises as fs } from "fs";
 import { __dirname, clients } from "./index.js";
-import { BaseImpl } from "./types.js";
+import { BaseImpl, User } from "./types.js";
 import {
   decodeToken,
   encodeToken,
@@ -194,17 +194,28 @@ export async function hackHandler(req: IncomingMessage, res: ServerResponse) {
   const token = parseCookies(req)["token"];
   const userID = decodeToken(token)?.userId as string;
   const cash = req.url ? parseInt(req.url.split("/")[2]) : 1000;
-
-  // users.get(userID)?.balance+=1000;
-  res.writeHead(202, {
-    "Content-Type": "application/json",
-  });
+  const user = users.get(userID);
+  console.log("Hakowy", users.get(userID));
+  if (!user) {
+    res.statusCode = 403;
+    res.end(
+      JSON.stringify({
+        message: "Błąd odczytu użytkownika",
+      })
+    );
+    return;
+  }
+  user.balance += cash;
+  res.statusCode = 202;
+  res.setHeader("Content-Type", "application/json");
   res.end(
     JSON.stringify({
-      message: `Hacked!!! User o ID: ${userID} dodał ${cash} na swoje konto`,
+      message: `Hacked!!! User o ID: "${userID}" dodał ${cash} na swoje konto`,
     })
   );
+  await saveUsers(users.get());
 }
+
 export function notFoundHandler(req: IncomingMessage, res: ServerResponse) {
   res.end("<h1>404 - Not Found</h1>");
 }
@@ -238,6 +249,57 @@ export async function loginHandler(req: IncomingMessage, res: ServerResponse) {
   });
   return;
 }
+export async function logoutHandler(req: IncomingMessage, res: ServerResponse) {
+  res.writeHead(200, {
+    "Content-Type": "application/json",
+    "Set-Cookie":
+      "token=; HttpOnly; Secure; SameSite=Strict; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT",
+  });
+  res.end(JSON.stringify({ message: "Wylogowano" }));
+}
+export async function registerHandler(
+  req: IncomingMessage,
+  res: ServerResponse,
+  role: User["role"] = "user"
+) {
+  const users = await loadFullUsers();
+  let body = "";
+  req.on("data", (chunk) => (body += chunk));
+  req.on("end", () => {
+    try {
+      const data = JSON.parse(body);
+      const { username, password } = data;
+      if (
+        typeof username !== "string" ||
+        typeof password !== "string" ||
+        users.get(username)
+      ) {
+        res.writeHead(400, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ error: "Niepoprawne dane" }));
+        return;
+      }
+      if (users.get().find((u) => u.username === username)) {
+        res.writeHead(400, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ error: "Użytkownik już istnieje" }));
+        return;
+      }
+      const newUser = {
+        id: `${username}${users.get().length.toString().padStart(3, "0")}`,
+        username: username,
+        password: password,
+        role: role,
+        balance: 0,
+      };
+      users.add(newUser as User);
+      saveUsers(users.get());
+      res.writeHead(201, { "Content-Type": "application/json" });
+      res.end(JSON.stringify(newUser));
+    } catch (e) {
+      res.writeHead(400, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: "Invalid JSON" }));
+    }
+  });
+}
 export async function sseHandler(req: IncomingMessage, res: ServerResponse) {
   res.writeHead(200, {
     "Content-Type": "text/event-stream",
@@ -261,5 +323,7 @@ export default {
   notFoundHandler,
   errorHandler,
   loginHandler,
+  logoutHandler,
+  registerHandler,
   sseHandler,
 };
