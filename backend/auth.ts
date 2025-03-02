@@ -1,9 +1,7 @@
-import { loadFullUsers } from "./data.js";
+import { loadUsers } from "./data.js";
 import { TokenPayload, User } from "./types.js";
 import { ServerResponse, IncomingMessage } from "http";
 import jwt from "jsonwebtoken";
-
-// const SecretKey = process.env.SECRET_KEY;
 
 export function encodeToken(userId: string): string {
   const SecretKey: string = process.env.SECRET_KEY as string;
@@ -18,38 +16,20 @@ export function decodeToken(token: string): TokenPayload | null {
     return null;
   }
 }
-// export function decodeToken(token: string): string {
-//   let userId = token;
-//   return userId;
-// }
 export async function getUserFromToken(token: string): Promise<User | null> {
-  const users = await loadFullUsers();
+  const users = await loadUsers();
   const id = decodeToken(token);
-  console.log("ID: ", id);
   if (!id) {
     return null;
   }
   return users.get(id.userId);
-
-  // return {
-  //   id: "1", //immutable
-  //   username: "string",
-  //   password: "string", // Dla uproszczenia przechowujemy hasło w postaci jawnej (w praktyce należy stosować hashowanie)
-  //   role: "admin", //immutable
-  //   balance: 123, //immutable
-  // };
 }
 
 export function setAuthCookie(
   res: ServerResponse,
   token: string,
   maxAge?: number
-) {
-  // res.writeHead(200, {
-  //   "Content-Type": "application/json",
-  //   "set-cookie": `token=${token}; ${maxAge ? `max-age=${maxAge}` : ""};`,
-  // });
-
+): void {
   res.setHeader(
     "set-cookie",
     `token=${token}; ${maxAge ? `max-age=${maxAge}` : ""};`
@@ -62,10 +42,6 @@ export function parseCookies(req: IncomingMessage): Record<string, string> {
     console.log("No cookies");
     return {};
   }
-  const SecretKey: string = process.env.SECRET_KEY as string;
-  // console.log("SecretKey: ", SecretKey);
-  // console.log("Cookies: ", cookieHeader);
-
   return cookieHeader.split(";").reduce((acc, cookie) => {
     const [key, value] = cookie.split("=");
     acc[key.trim()] = value;

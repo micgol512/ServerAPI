@@ -1,52 +1,42 @@
 // routes
 
-import { IncomingMessage, ServerResponse } from "http";
-import {
-  loadCars,
-  loadFullCars,
-  loadFullUsers,
-  loadUsers,
-  saveCars,
-  saveUsers,
-} from "./data.js";
+import { get, IncomingMessage, ServerResponse } from "http";
+import { loadCars, loadUsers, saveCars, saveUsers } from "./data.js";
 import path from "path";
 import { promises as fs } from "fs";
 import { __dirname, clients } from "./index.js";
-import { BaseImpl, User } from "./types.js";
+import { User } from "./types.js";
 import {
   decodeToken,
   encodeToken,
+  getUserFromToken,
   parseCookies,
   setAuthCookie,
 } from "./auth.js";
 
-//GET
-// /static/ ->  index.html
-// /cars -> cars from db/cars.json
-// /cars/:id -> specyfic data for id
-// /users -> users from db/users.json
-// /users/id ->specyfic data for id
-//login i logout? register
-
-//
 export async function homeHandler(req: IncomingMessage, res: ServerResponse) {
-  // res.end("<h1>Strona główna</h1>");
-  const filePath = path.join(__dirname, "../", "frontend", "index.html");
-  const data = await fs.readFile(filePath);
+  let filePath = path.join(__dirname, "../", "frontend", "index.html");
 
+  if (req.url?.endsWith("/style.css")) {
+    res.writeHead(200, { "Content-Type": "text/css" });
+    filePath = path.join(__dirname, "../", "frontend", "style.css");
+  } else if (req.url?.endsWith("/main.js")) {
+    res.writeHead(200, { "Content-Type": "text/javascript" });
+    filePath = path.join(__dirname, "../", "frontend", "main.js");
+  } else {
+    res.writeHead(200, { "Content-Type": "text/html" });
+  }
+  const data = await fs.readFile(filePath);
   res.end(data);
 }
-async function purchaseCar(req: IncomingMessage, res: ServerResponse) {}
-async function addCar(req: IncomingMessage, res: ServerResponse) {}
-
 export async function carsHandler(req: IncomingMessage, res: ServerResponse) {
-  const cars = await loadFullCars();
+  const cars = await loadCars();
   if (req.method === "POST") {
     if (req.url?.endsWith("buy")) {
-      console.log("POST CARS");
       const carID = req.url?.split("/")[2];
       const token = parseCookies(req)["token"];
       const userID = decodeToken(token)?.userId;
+
       if (carID && userID) {
         const car = cars.get(carID);
         if (!car) {
@@ -65,8 +55,8 @@ export async function carsHandler(req: IncomingMessage, res: ServerResponse) {
           res.end(JSON.stringify({ error: "Samochód już jest sprzedany" }));
           return;
         }
-        const users = await loadFullUsers();
-        const user = users.get(userID);
+        const users = await loadUsers();
+        const user = await getUserFromToken(token);
         if (!user) {
           res.writeHead(404, {
             "Content-Type": "application/json",
@@ -83,7 +73,6 @@ export async function carsHandler(req: IncomingMessage, res: ServerResponse) {
         }
         user.balance -= car.price;
         car.ownerId = user.id;
-        console.log("CAR ID: ", carID);
 
         const data = `data: ${JSON.stringify({
           event: "CarPurchased",
@@ -91,8 +80,8 @@ export async function carsHandler(req: IncomingMessage, res: ServerResponse) {
           buyerId: userID,
         })}\n\n`;
         clients.forEach((client) => client.write(data));
+        users.set(user.id, user);
 
-        await saveUsers(users.get());
         await saveCars(cars.get());
 
         res.writeHead(200, {
@@ -102,7 +91,6 @@ export async function carsHandler(req: IncomingMessage, res: ServerResponse) {
       }
     } else {
       //add CAR
-
       let body = "";
       req.on("data", (chunk) => (body += chunk));
       req.on("end", () => {
@@ -144,53 +132,101 @@ export async function carsHandler(req: IncomingMessage, res: ServerResponse) {
   }
 }
 export async function usersHandler(req: IncomingMessage, res: ServerResponse) {
+  res.setHeader("Content-Type", "application/json");
+  const users = await loadUsers();
   const token = parseCookies(req)["token"];
-  console.log("Token: ", token);
-  if (!token) {
-    res.writeHead(403, {
-      "Content-Type": "application/json",
-    });
-    res.end(JSON.stringify({ error: "Nie zalogowany" }));
-    return;
-  }
-  const userID = decodeToken(token)?.userId;
-  if (!userID) {
-    res.writeHead(401, {
-      "Content-Type": "application/json",
-    });
-    res.end(JSON.stringify({ error: "Brak autoryzacji" }));
-    return;
-  }
-  const users = await loadFullUsers();
-  const user = users.get(userID);
+  const user = await getUserFromToken(token);
   if (!user) {
-    res.writeHead(404, {
-      "Content-Type": "application/json",
-    });
+    res.statusCode = 404;
     res.end(JSON.stringify({ error: "Usera nie znaleziono." }));
     return;
   }
-  res.writeHead(200, {
-    "Content-Type": "application/json",
-  });
-  if (user.role !== "admin") {
-    res.end(JSON.stringify(user));
+  if (req.method === "GET") {
+    if (user.role !== "admin") {
+      res.statusCode = 200;
+      res.end(JSON.stringify(user));
+    } else {
+      const searchUserId = req.url?.split("/")[2];
+      if (searchUserId) {
+        const searchUser = users.get(searchUserId);
+        if (!searchUser) {
+          res.statusCode = 404;
+          res.end(JSON.stringify({ error: "Użytkownik nie istnieje" }));
+          return;
+        }
+        res.statusCode = 200;
+        res.end(JSON.stringify(searchUser));
+      } else {
+        res.statusCode = 200;
+        res.end(JSON.stringify(users.get()));
+      }
+    }
+  } else if (req.method === "PUT") {
+    let body = "";
+    req.on("data", (chunk) => (body += chunk));
+    req.on("end", async () => {
+      try {
+        const data = JSON.parse(body);
+        const { username, password } = data;
+        if (username.length === 0 && password.length === 0) {
+          res.statusCode = 403;
+          res.end(
+            JSON.stringify({
+              error: "Brak potrzebnych informacji do aktualizacji",
+            })
+          );
+          return;
+        }
+        if (username.length === 0) {
+          res.statusCode = 200;
+          users.set(user.id, { password });
+          res.end(
+            JSON.stringify({
+              message: "Zaktualizowano hasło.",
+            })
+          );
+        } else if (password.length === 0) {
+          if (user.username.toLowerCase() === username.toLowerCase()) {
+            res.statusCode = 203;
+          } else {
+            res.statusCode = 200;
+            users.set(user.id, { username: username.toLowerCase() });
+          }
+          res.end(
+            JSON.stringify({
+              message: "Zaktualizowano nazwę użytkownika.",
+              error: "Nowa nazwa użytkownika jest taka sama jak poprzednia.",
+            })
+          );
+        } else {
+          users.set(user.id, { username: username.toLowerCase(), password });
+          res.end(
+            JSON.stringify({ message: "Zaktualizowano dane profilowe." })
+          );
+        }
+        await saveUsers(users.get());
+      } catch (e) {
+        res.statusCode = 400;
+        res.end(JSON.stringify({ error: "Invalid JSON" }));
+        return;
+      }
+    });
+  } else if (req.method === "DELETE") {
+    users.delete(user.id);
+    await saveUsers(users.get());
+    res.end(JSON.stringify({ message: "Usunięto użytkownika." }));
   } else {
-    res.end(JSON.stringify(users.get()));
+    res.statusCode = 405;
+    res.end(
+      JSON.stringify({
+        error: "Ta metoda nie jest obsługiwana dla tego endpointu.",
+      })
+    );
   }
 }
 
-// const users = await loadFullUsers();
-// console.log(parseCookies(req)["token"] || "brak tokena");
-// res.writeHead(200, {
-//   "Content-Type": "application/json",
-// });
-// // console.log(users.get());
-// res.end(JSON.stringify(users.get()));
-
 export async function hackHandler(req: IncomingMessage, res: ServerResponse) {
-  homeHandler(req, res);
-  const users = await loadFullUsers();
+  const users = await loadUsers();
   const token = parseCookies(req)["token"];
   const userID = decodeToken(token)?.userId as string;
   const cash = req.url ? parseInt(req.url.split("/")[2]) : 1000;
@@ -206,8 +242,9 @@ export async function hackHandler(req: IncomingMessage, res: ServerResponse) {
     return;
   }
   user.balance += cash;
-  res.statusCode = 202;
-  res.setHeader("Content-Type", "application/json");
+  res.writeHead(202, {
+    "Content-Type": "application/json",
+  });
   res.end(
     JSON.stringify({
       message: `Hacked!!! User o ID: "${userID}" dodał ${cash} na swoje konto`,
@@ -215,15 +252,13 @@ export async function hackHandler(req: IncomingMessage, res: ServerResponse) {
   );
   await saveUsers(users.get());
 }
-
 export function notFoundHandler(req: IncomingMessage, res: ServerResponse) {
+  res.writeHead(404, { "Content-Type": "text/html" });
   res.end("<h1>404 - Not Found</h1>");
 }
-export function errorHandler(req: IncomingMessage, res: ServerResponse) {
-  res.end("<h1>500 - Server Error</h1>");
-}
+
 export async function loginHandler(req: IncomingMessage, res: ServerResponse) {
-  const users = await loadFullUsers();
+  const users = await loadUsers();
   let body = "";
   req.on("data", (chunk) => (body += chunk));
   req.on("end", () => {
@@ -237,7 +272,12 @@ export async function loginHandler(req: IncomingMessage, res: ServerResponse) {
       if (user) {
         setAuthCookie(res, encodeToken(user.id));
         res.writeHead(200, { "Content-Type": "application/json" });
-        res.end(JSON.stringify(user));
+
+        if (user.role !== "admin") {
+          res.end(JSON.stringify(user));
+        } else {
+          res.end(JSON.stringify(users.get()));
+        }
       } else {
         res.writeHead(400, { "Content-Type": "application/json" });
         res.end(JSON.stringify({ error: "Błędne dane logowania" }));
@@ -262,7 +302,7 @@ export async function registerHandler(
   res: ServerResponse,
   role: User["role"] = "user"
 ) {
-  const users = await loadFullUsers();
+  const users = await loadUsers();
   let body = "";
   req.on("data", (chunk) => (body += chunk));
   req.on("end", () => {
@@ -284,8 +324,11 @@ export async function registerHandler(
         return;
       }
       const newUser = {
-        id: `${username}${users.get().length.toString().padStart(3, "0")}`,
-        username: username,
+        id: `${username.toLowerCase()}${users
+          .get()
+          .length.toString()
+          .padStart(3, "0")}`,
+        username: username.toLowerCase(),
         password: password,
         role: role,
         balance: 0,
@@ -321,7 +364,6 @@ export default {
   usersHandler,
   hackHandler,
   notFoundHandler,
-  errorHandler,
   loginHandler,
   logoutHandler,
   registerHandler,

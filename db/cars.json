@@ -6,6 +6,6 @@
   { "id": "5", "model": "Corsa", "price": 500, "ownerId": null },
   { "id": "5", "model": "Zafira", "price": 12, "ownerId": null },
   { "id": "6", "model": "Maluch", "price": 2000, "ownerId": null },
-  { "id": "7", "model": "Pegueot", "price": 1, "ownerId": null },
-  { "id": "8", "model": "Pegueot", "price": 1, "ownerId": null }
+  { "id": "7", "model": "Pegueot", "price": 10, "ownerId": null },
+  { "id": "8", "model": "Pegueot", "price": 10, "ownerId": null }
 ]

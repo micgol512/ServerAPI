@@ -49,15 +49,20 @@ export class BaseImpl<T extends { id: string }> implements Base<T> {
     if (index === -1) {
       throw new Error(`Item with id ${id} not found`);
     }
-    this.data[index] = {
-      ...this.data[index],
-      ...updates,
-    };
+
+    Object.entries(updates).forEach(([key, value]) => {
+      if (value !== undefined) {
+        (this.data[index] as any)[key] = value;
+      }
+    });
   }
   delete(id: string): void {
     this.data = this.data.filter((item) => item.id !== id);
   }
   add(item: T): void {
+    if (this.data.some((i) => i.id === item.id)) {
+      throw new Error(`Item with id ${item.id} already exists`);
+    }
     this.data.push(item);
   }
 }

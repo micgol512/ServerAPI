@@ -8,8 +8,7 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "tsc": "tsc --watch --preserveWatchOutput",
     "start:api": "node --watch --env-file=.env ./dist/index.js",
-    "start:nodemon": "nodemon ./dist/index.js",
-    "start": "tsc --watch --preserveWatchOutput && nodemon ./dist/index.js"
+    "start:nodemon": "nodemon ./dist/index.js"
   },
   "repository": {
     "type": "git",

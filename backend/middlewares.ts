@@ -1,5 +1,6 @@
 import { IncomingMessage, ServerResponse } from "http";
 import { RequestHandler } from "./types.js";
+import { decodeToken, getUserFromToken, parseCookies } from "./auth.js";
 
 const requestQueue: {
   req: IncomingMessage;
@@ -8,9 +9,6 @@ const requestQueue: {
 }[] = [];
 let processing = false;
 
-/**
- * Kolejkuje przychodzące żądania i wykonuje je jedno po drugim.
- */
 export function queueRequest(
   req: IncomingMessage,
   res: ServerResponse,
@@ -22,7 +20,6 @@ export function queueRequest(
 
 async function processQueue() {
   if (processing || requestQueue.length === 0) return;
-
   processing = true;
   const { req, res, handler } = requestQueue.shift()!;
 
@@ -34,5 +31,38 @@ async function processQueue() {
     res.end(JSON.stringify({ error: "Internal Server Error" }));
   }
   processing = false;
-  processQueue(); // Przetwarzamy kolejne żądanie
+  processQueue();
+}
+
+export async function onlyForAdmins(
+  req: IncomingMessage,
+  res: ServerResponse,
+  handler: RequestHandler
+) {
+  const token = parseCookies(req)["token"];
+  const user = await getUserFromToken(token);
+  if (!user || user.role !== "admin") {
+    res.writeHead(403, {
+      "Content-Type": "application/json",
+    });
+    res.end(JSON.stringify({ error: "Brak autoryzacji" }));
+    return;
+  }
+  handler(req, res);
+}
+export function onlyForLogged(
+  req: IncomingMessage,
+  res: ServerResponse,
+  handler: RequestHandler
+) {
+  const token = parseCookies(req)["token"];
+  const isValid = decodeToken(token);
+  if (!isValid) {
+    res.writeHead(403, {
+      "Content-Type": "application/json",
+    });
+    res.end(JSON.stringify({ error: "Nie zalogowany" }));
+    return;
+  }
+  handler(req, res);
 }
