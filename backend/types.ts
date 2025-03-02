@@ -1,11 +1,11 @@
 import { IncomingMessage, ServerResponse } from "http";
 
 export interface User {
-  id: string; //immutable
+  id: string;
   username: string;
-  password: string; // Dla uproszczenia przechowujemy hasło w postaci jawnej (w praktyce należy stosować hashowanie)
-  role: "admin" | "user"; //immutable
-  balance: number; //immutable
+  password: string;
+  role: "admin" | "user";
+  balance: number;
 }
 
 export interface Car {
@@ -16,11 +16,9 @@ export interface Car {
 }
 
 export interface Base<T> {
-  //T to users albo cars
   data: T[];
   get(): T[];
   get(id: string): T | null;
-
   set<K extends keyof T>(id: string, updates: Partial<Pick<T, K>>): void;
   delete(id: string): void;
   add(item: T): void;
@@ -39,7 +37,6 @@ export class BaseImpl<T extends { id: string }> implements Base<T> {
       const item = this.data.find((item) => item.id === id);
       if (!item) {
         return null;
-        // throw new Error("Not found");
       }
       return item;
     }
@@ -66,19 +63,6 @@ export class BaseImpl<T extends { id: string }> implements Base<T> {
     this.data.push(item);
   }
 }
-export interface DataBase {
-  users: BaseImpl<User>;
-  cars: BaseImpl<Car>;
-}
-
-export class DB implements DataBase {
-  users: BaseImpl<User>;
-  cars: BaseImpl<Car>;
-  constructor(users: User[], cars: Car[]) {
-    this.users = new BaseImpl(users);
-    this.cars = new BaseImpl(cars);
-  }
-}
 
 export type RequestHandler = (
   req: IncomingMessage,
@@ -87,5 +71,5 @@ export type RequestHandler = (
 
 export interface TokenPayload {
   userId: string;
-  exp?: number; // (opcjonalnie) czas wygaśnięcia
+  exp?: number;
 }
